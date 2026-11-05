@@ -71,3 +71,14 @@ executable vcsh
       base
     , vcsh
   ghc-options: -rtsopts "-with-rtsopts=-M512M"
+
+test-suite compare-with-shell
+  import: compile-options
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+      base
+    , vcsh
+  build-tool-depends: vcsh:vcsh
+  ghc-options: -rtsopts "-with-rtsopts=-M512M"

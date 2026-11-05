@@ -7,7 +7,8 @@ vcsh - Version Control System for $HOME - multiple Git repositories in $HOME
 
 1. [30 Second How-to](#30-second-how-to)
 2. [Introduction](#introduction)
-3. [Contact](#contact)
+3. [Haskell implementation](#haskell-implementation)
+4. [Contact](#contact)
 
 
 # 30 Second How-to
@@ -59,6 +60,35 @@ Some people found it useful to look at slides and videos explaining how `vcsh`
 works instead of working through the docs.
 All slides, videos, and further information can be found
 [on the author's talk page][talks].
+
+
+# Haskell implementation
+
+This branch has a Haskell implementation of `vcsh`, built with `cabal`
+from the [streamly](https://streamly.composewell.com) ecosystem packages.
+The shell script `vcsh` remains the reference implementation.
+
+    cabal build
+    cabal install exe:vcsh
+
+`cabal test` runs the same command lines with `./vcsh` and with the
+Haskell `vcsh`, in separate sandbox directories, and compares the output
+and exit codes.
+
+Differences from the shell implementation:
+
+* Configuration files (`/etc/vcsh/config`, `$XDG_CONFIG_HOME/vcsh/config`,
+  `-c <file>`, `config.d/<repo>`) are sourced by `/bin/sh`. Variables
+  that they set are exported to git and hooks.
+* Overlays cannot be sourced; an error is printed for each overlay found.
+* `which` matches a substring, not a `grep` regular expression.
+* File names are read with `git ls-files -z`, so names with spaces or
+  special characters are not split or quoted.
+* `commit` passes its arguments to `git commit`.
+* `-c <file>` followed by a command works.
+* `help` exits with code 0.
+* `write-gitignore` always lists the parent directories of the tracked
+  files.
 
 
 # Contact

@@ -25,7 +25,7 @@ import Vcsh.Error (fatal, orFatal)
 import Vcsh.FileSystem
     ( (</>), changeDirectory, isDirectory, moveForce, pathExists
     , readTextFile, writeTextFile)
-import Vcsh.Git (gitFiles, gitVersion)
+import Vcsh.Git (gitFiles)
 import Vcsh.Log (info)
 
 import qualified Data.Set as Set
@@ -111,17 +111,18 @@ withParents path =
         _ -> [path]
 
 -- | The @.gitignore.d@ entries of the repository: ignore everything except
--- the tracked files. Git versions older than 2.7 also need the parent
--- directories of the files. With 'GitIgnoreRecursive' the contents of the
--- tracked directories are not ignored either. Relative paths are relative
--- to the current directory.
+-- the tracked files and their parent directories. A file in an ignored
+-- directory cannot be re-included, therefore the parent directories are
+-- needed. With 'GitIgnoreRecursive' the contents of the tracked
+-- directories are not ignored either. Relative paths are relative to the
+-- current directory.
+--
+-- The shell implementation omits the parent directories for git 2.7 or
+-- later, but its version check fails for minor versions above 9.
 gitignoreEntries :: Ctx -> IO [String]
 gitignoreEntries ctx = do
-    version <- gitVersion ctx
     files <- trackedFiles ctx
-    let paths =
-            sortUnique $
-                if version >= (2, 7) then files else concatMap withParents files
+    let paths = sortUnique (concatMap withParents files)
     entries <- mapM entry paths
     return ("*" : concat entries)
 

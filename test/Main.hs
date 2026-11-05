@@ -9,11 +9,22 @@
 -- Each step is a shell command line in which @$VCSH@ runs vcsh. The
 -- command runs in the home directory of the sandbox with stderr merged
 -- into stdout. The sandbox path is replaced by @<ROOT>@ in the output.
+--
+-- The steps avoid the cases where the Haskell implementation fixes a bug
+-- of the shell implementation:
+--
+-- * @commit@ passes the word @commit@ to @git commit@ as a pathspec.
+-- * @-c <file>@ followed by a command prints the help text.
+-- * @help@ exits with code 1.
+-- * The pre-command hook of @list-tracked <repo>@ does not get
+--   @VCSH_REPO_NAME@.
+--
+-- 'normalize' removes the output of two other bugs.
 
 module Main (main) where
 
 import Control.Monad (forM, unless)
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
 import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
@@ -30,7 +41,6 @@ steps =
     [ "$VCSH status"
     , "$VCSH list"
     , "$VCSH"
-    , "$VCSH help"
     , "$VCSH version | head -1"
     , "$VCSH nosuchrepo"
     , "$VCSH nosuchrepo status"
@@ -72,6 +82,10 @@ steps =
     , "$VCSH wr test1 && cat .gitignore.d/test1 && ls .gitignore.d"
     , "mkdir -p d/e && touch d/e/f u && $VCSH list-untracked"
     , "$VCSH list-untracked -a test1"
+    , "$VCSH test1 add d/e/f && $VCSH write-gitignore test1\
+      \ && cat .gitignore.d/test1 .gitignore.d/test1.bak"
+    , "VCSH_GITIGNORE=recursive $VCSH write-gitignore test1\
+      \ && cat .gitignore.d/test1"
     , "$VCSH upgrade test1"
     , "$VCSH run test1 git log --oneline"
     , "$VCSH run test1 sh -c 'echo $VCSH_DIRECTORY $VCSH_REPO_NAME; exit 3'"
@@ -80,8 +94,7 @@ steps =
 
     -- Two repositories
     , "$VCSH init test2"
-    , "echo c > c && $VCSH test2 add c && $VCSH co -m one"
-    , "$VCSH commit"
+    , "echo c > c && $VCSH test2 add c && $VCSH test2 commit -q -m one"
     , "$VCSH foreach log --oneline"
     , "$VCSH foreach -g echo hello"
     , "$VCSH list-tracked"
@@ -111,7 +124,6 @@ steps =
     , "chmod +x .config/vcsh/hooks-enabled/*"
     , "$VCSH list"
     , "$VCSH status test1"
-    , "$VCSH list-tracked test1"
     , "printf '#!/bin/sh\\nexit 1\\n' > .config/vcsh/hooks-enabled/pre-run"
     , "chmod +x .config/vcsh/hooks-enabled/pre-run && $VCSH run test1 true"
     , "rm -rf .config/vcsh/hooks-enabled"
@@ -119,8 +131,8 @@ steps =
     -- Configuration files
     , "mkdir -p .config/vcsh && echo VCSH_GITIGNORE=none\
       \ > .config/vcsh/config && $VCSH write-gitignore test1"
-    , "echo 'VCSH_BASE=$HOME/base' > conf && $VCSH -c conf list-tracked"
-    , "rm .config/vcsh/config conf"
+    , "echo 'VCSH_BASE=$HOME/base' > .config/vcsh/config && $VCSH list-tracked"
+    , "rm .config/vcsh/config"
 
     -- Delete
     , "echo no | $VCSH delete test1"
@@ -145,6 +157,17 @@ replace old new = go
     go s@(c : rest)
         | old `isPrefixOf` s = new ++ go (drop (length old) s)
         | otherwise = c : go rest
+
+-- | Remove the error message of the shell implementation for its git
+-- version check in @write-gitignore@, and the @-e@ printed by @echo -e@
+-- when @/bin/sh@ is dash.
+normalize :: String -> String
+normalize = unlines . map dropE . filter (not . versionCheck) . lines
+
+    where
+
+    versionCheck l = ": unexpected operator" `isSuffixOf` l
+    dropE l = if "-e " `isPrefixOf` l then drop 3 l else l
 
 -- | Run the steps with the given vcsh command in a new sandbox directory,
 -- return the output of each step.
@@ -176,7 +199,7 @@ runSteps root vcsh = do
                 (inDir home . inEnv env)
                 "/bin/sh"
                 ["-c", "{ " ++ step ++ "; } 2>&1; echo \"[exit $?]\""]
-        return (replace root "<ROOT>" out)
+        return (normalize (replace root "<ROOT>" out))
 
 main :: IO ()
 main = do

@@ -20,7 +20,9 @@ import Data.List (intercalate)
 import System.Exit (ExitCode(..), exitSuccess, exitWith)
 import System.IO (isEOF)
 import Vcsh.Config (Config(..), GitIgnore(..), WorkTree(..))
-import Vcsh.Context (Ctx(..), Repo(..), ctxCurrentRepo, childEnv, gitDirExists, use, withRepo)
+import Vcsh.Context
+    ( Ctx(..), Repo(..), ctxCurrentRepo, childEnv, gitDirExists, use
+    , withRepo)
 import Vcsh.Error (fatal, orFatal)
 import Vcsh.FileSystem
     ( (</>), changeDirectory, createDirectories, isDirectory, moveForce
@@ -106,7 +108,8 @@ clone ctx0 remote branch = do
     then return code
     else do
         gitConfig ctx ("branch." ++ branch ++ ".remote") "origin"
-        gitConfig ctx ("branch." ++ branch ++ ".merge") ("refs/heads/" ++ branch)
+        gitConfig ctx
+            ("branch." ++ branch ++ ".merge") ("refs/heads/" ++ branch)
         (_, refs) <- gitOutputQuiet ctx ["ls-remote", "origin", branch]
         when (null (lines refs)) $ do
             info (ctxLog ctx)

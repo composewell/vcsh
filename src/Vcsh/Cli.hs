@@ -168,7 +168,8 @@ parseClone args0 =
                     Nothing ->
                         case remoteName remote of
                             "" -> Left "could not determine repository name"
-                            repo -> Right (Clone remote (orMaster branch2) repo)
+                            repo ->
+                                Right (Clone remote (orMaster branch2) repo)
 
     where
 

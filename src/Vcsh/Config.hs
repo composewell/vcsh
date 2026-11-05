@@ -134,8 +134,8 @@ loadConfigFiles optConfig vars0 = do
     let home = varOr "HOME" "" vars0
         vars1 = setDefault "XDG_CONFIG_HOME" (home </> ".config") vars0
     vars2 <- sourceIfReadable vars1 "/etc/vcsh/config"
-    vars3 <-
-        sourceIfReadable vars2 (varOr "XDG_CONFIG_HOME" "" vars2 </> "vcsh/config")
+    let userConfig = varOr "XDG_CONFIG_HOME" "" vars2 </> "vcsh/config"
+    vars3 <- sourceIfReadable vars2 userConfig
     case optConfig of
         Nothing -> return vars3
         Just file -> do

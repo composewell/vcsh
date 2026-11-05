@@ -6,7 +6,6 @@
 
 module Vcsh.Git
     ( git
-    , gitWith
     , gitOutput
     , gitOutputQuiet
     , gitFiles
@@ -22,15 +21,11 @@ import Data.Maybe (fromMaybe)
 import System.Exit (ExitCode)
 import Vcsh.Context (Ctx, childEnv)
 import Vcsh.Process
-    (Modifier, inEnv, readStdout, readStdoutQuiet, runForeground, splitNul)
+    (inEnv, readStdout, readStdoutQuiet, runForeground, splitNul)
 
 -- | Run git with stdio inherited from vcsh, return its exit code.
 git :: Ctx -> [String] -> IO ExitCode
 git ctx = runForeground (inEnv (childEnv ctx)) "git"
-
--- | Like 'git' but also apply the given process configuration.
-gitWith :: Modifier -> Ctx -> [String] -> IO ExitCode
-gitWith modifier ctx = runForeground (modifier . inEnv (childEnv ctx)) "git"
 
 -- | Run git and return its exit code and stdout. stderr is inherited.
 gitOutput :: Ctx -> [String] -> IO (ExitCode, String)

@@ -126,7 +126,9 @@ vcsh lg0 opts args = do
     let flagVars =
                [("VCSH_DEBUG", "1") | optDebug opts]
             ++ [("VCSH_VERBOSE", "1") | optVerbose opts]
-    vars <- loadConfigFiles (optConfig opts) (Map.union (Map.fromList flagVars) env)
+    vars <-
+        loadConfigFiles
+            (optConfig opts) (Map.union (Map.fromList flagVars) env)
     cfg <- mkConfig vars
     let self = logSelf lg0
         lg = lg0 { logVerbose = cfgVerbose cfg, logDebug = cfgDebug cfg }

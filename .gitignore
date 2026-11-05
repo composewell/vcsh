@@ -3,3 +3,4 @@ vcsh.1
 *.swp
 .swp
 *.bak
+dist-newstyle/

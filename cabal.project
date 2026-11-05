@@ -1,3 +1,9 @@
 packages: .
 
 flags: +limit-build-mem
+
+-- streamly-coreutils is not on Hackage yet.
+source-repository-package
+  type: git
+  location: https://github.com/composewell/streamly-coreutils
+  tag: 809565fa870dcb1d1273f982c06a88cfc9e69237
